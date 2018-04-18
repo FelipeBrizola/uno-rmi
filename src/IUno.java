@@ -1,7 +1,7 @@
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
-public interface IGame extends Remote {
+public interface IUno extends Remote {
 
 	/**
 	 * registraJogador
@@ -140,4 +140,6 @@ public interface IGame extends Remote {
 	 * ­4 (não é a vez do jogador).
 	 */
 	public int playCard(int playerId, int index, int cardColor) throws RemoteException;
+	
+	public String hello() throws RemoteException;
 }

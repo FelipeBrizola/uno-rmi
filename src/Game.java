@@ -1,95 +1,33 @@
-import java.rmi.RemoteException;
+import java.util.ArrayList;
 
-public class Game implements IGame {
+public class Game {
 
-	@Override
-	public int registerPlayer(String playerName) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
+	private ArrayList<Card> tableDeck = new ArrayList<>();
+	private ArrayList<Card> deck = new ArrayList<>();
+	private ArrayList<Player> players = new ArrayList<>();
+	
+	public Game(Player playerOne, Player playerTwo) {
+		this.players.add(playerOne);
+		this.players.add(playerTwo);
+		
+		// embaralhar cartas
+		// inicializar tabledeck com carta
 	}
 
-	@Override
-	public int gameOver(int playerId) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
+	public ArrayList<Card> getDeck() {
+		return deck;
 	}
 
-	@Override
-	public int hasGame(int playerId) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
+	public void setDeck(ArrayList<Card> deck) {
+		this.deck = deck;
 	}
 
-	@Override
-	public String getOpponent(int playerId) throws RemoteException {
-		// TODO Auto-generated method stub
-		return null;
+	public ArrayList<Card> getTableDeck() {
+		return tableDeck;
 	}
 
-	@Override
-	public int isMyTurn(int playerId) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
+	public void setTableDeck(ArrayList<Card> tableDeck) {
+		this.tableDeck = tableDeck;
 	}
-
-	@Override
-	public int getNumberOfCardsFromDeck(int playerId) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public int getNumberOfCards(int playerId) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public int getNumberOfCardsFromOpponent(int playerId) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public String showCards(int playerId) throws RemoteException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public int getActiveColor(int playerId) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public int getScore(int playerId) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public String getCardFromTable(int playerId) throws RemoteException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public int getCardFromDeck(int playerId) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public int getOpponentScore(int playerId) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public int playCard(int playerId, int index, int cardColor) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
+	
 }
