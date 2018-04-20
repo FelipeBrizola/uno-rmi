@@ -1,17 +1,18 @@
 import java.util.ArrayList;
+import java.util.Stack;
 
 public class Player {
 
 	private String name;
 	private int id;
 	private boolean isPlaying;
-	private ArrayList<Card> deck;
+	private Stack<Card> deck;
 	
 	public Player(String name, int id) {
 		this.name = name;
 		this.isPlaying = false;
 		this.id = id;
-		this.setDeck(new ArrayList<>());
+		this.setDeck(new Stack<>());
 	}
 
 	public String getName() {
@@ -33,11 +34,11 @@ public class Player {
 		this.isPlaying = status;
 	}
 
-	public ArrayList<Card> getDeck() {
+	public Stack<Card> getDeck() {
 		return deck;
 	}
 
-	public void setDeck(ArrayList<Card> deck) {
+	public void setDeck(Stack<Card> deck) {
 		this.deck = deck;
 	}
 	

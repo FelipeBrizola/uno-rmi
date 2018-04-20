@@ -1,9 +1,10 @@
 import java.util.ArrayList;
+import java.util.Stack;
 
 public class Game {
 
-	private ArrayList<Card> tableDeck = new ArrayList<>();
-	private ArrayList<Card> deck = new ArrayList<>();
+	private Stack<Card> tableDeck = new Stack<>();
+	private Stack<Card> deck = new Stack<>();
 	private ArrayList<Player> players = new ArrayList<>();
 	
 	public Game(Player playerOne, Player playerTwo) {
@@ -14,20 +15,32 @@ public class Game {
 		// inicializar tabledeck com carta
 	}
 
-	public ArrayList<Card> getDeck() {
+	public Stack<Card> getDeck() {
 		return deck;
 	}
 
-	public void setDeck(ArrayList<Card> deck) {
+	public void setDeck(Stack<Card> deck) {
 		this.deck = deck;
 	}
 
-	public ArrayList<Card> getTableDeck() {
+	public Stack<Card> getTableDeck() {
 		return tableDeck;
 	}
 
-	public void setTableDeck(ArrayList<Card> tableDeck) {
+	public void setTableDeck(Stack<Card> tableDeck) {
 		this.tableDeck = tableDeck;
 	}
+
+	public ArrayList<Player> getPlayers() {
+		return players;
+	}
 	
+	public Player getPlayerByPlayerId(int playerId) {
+		for(Player player : players)
+			if (player.getId() == playerId)
+				return player;
+		
+		return null;
+	}
+
 }
