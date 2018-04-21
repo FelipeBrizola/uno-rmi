@@ -6,13 +6,17 @@ public class Game {
 	private Stack<Card> tableDeck = new Stack<>();
 	private Stack<Card> deck = new Stack<>();
 	private ArrayList<Player> players = new ArrayList<>();
+	private GameStatus status;
 	
-	public Game(Player playerOne, Player playerTwo) {
+	public Game(Player playerOne) {
 		this.players.add(playerOne);
-		this.players.add(playerTwo);
 		
 		// embaralhar cartas
 		// inicializar tabledeck com carta
+	}
+	
+	public void addOpponent(Player opponent) {
+		this.players.add(opponent);
 	}
 
 	public Stack<Card> getDeck() {
@@ -41,6 +45,14 @@ public class Game {
 				return player;
 		
 		return null;
+	}
+
+	public GameStatus getStatus() {
+		return status;
+	}
+
+	public void setStatus(GameStatus status) {
+		this.status = status;
 	}
 
 }

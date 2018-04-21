@@ -6,14 +6,11 @@ import java.util.Stack;
 
 public class Uno extends UnicastRemoteObject implements IUno {
 
-	// baralho
-	// mesa
-	// 2 jogadores
-	// lista global de jogadores
+	private static int MAX_PLAYERS = 2;
 	
 	private static final long serialVersionUID = 1L;
 	private String name;
-	private ArrayList<Player> players = new ArrayList<>();
+	private ArrayList<Player> playersPool = new ArrayList<>();
 	private ArrayList<Game> games = new ArrayList<>();
 	
 	private Game getGameByPlayerId(int playerId) {
@@ -42,6 +39,7 @@ public class Uno extends UnicastRemoteObject implements IUno {
 				return -1;
 			}
 	}
+	
 	private int sumScore(Stack<Card> deck) {
 		int sum = 0;
 		
@@ -58,23 +56,40 @@ public class Uno extends UnicastRemoteObject implements IUno {
 		return sum;
 	}
 	
+	private void allocatesPlayer(Player newPlayer) {
+		// aloca jogador em alguma partida ou cria uma so com ele, por enquanto
+		for (Game game : games) {
+			ArrayList<Player> playersOnGame = game.getPlayers();
+		
+			if (game.getStatus() == GameStatus.WAITING && playersOnGame.size() == 1)
+				game.addOpponent(newPlayer);
+			else
+				games.add(new Game(newPlayer));
+		}
+		
+	}
+	
 	protected Uno(String name) throws RemoteException {
 		this.name = name;
 	}
-
+	
 	@Override
 	public int registerPlayer(String playerName) throws RemoteException {
 			
-		for (Player player : players) {
-			if (player.getName().equals(playerName)) 
-				if (player.getIsPlaying())
-					return -2;
-			
-				return -1;
-		}
+		if (playersPool.size() > MAX_PLAYERS)
+			return -2;
 		
-		Player newPlayer =  new Player(playerName, players.size());
-		players.add(newPlayer);
+		for (Player player : playersPool)
+			if (player.getName().equals(playerName)) 
+				return -1;
+		
+		Player newPlayer =  new Player(playerName, playersPool.size());
+		
+		allocatesPlayer(newPlayer);
+		
+		
+		
+		playersPool.add(newPlayer);
 		
 		// id do jogador sera o indice da lista
 		return newPlayer.getId();
@@ -85,38 +100,42 @@ public class Uno extends UnicastRemoteObject implements IUno {
 		ArrayList<Player> playersFromGame = this.getGameByPlayerId(playerId).getPlayers();
 		
 		for(Player playerFromGame : playersFromGame) 
-			for(int i = 0; i < this.players.size(); i+= 1)
-				if (this.players.get(i).getId() == playerFromGame.getId())
-					this.players.remove(i);
+			for(int i = 0; i < this.playersPool.size(); i+= 1)
+				if (this.playersPool.get(i).getId() == playerFromGame.getId())
+					this.playersPool.remove(i);
 					
 		return 0;
 	}
 
 	@Override
 	public int hasGame(int playerId) throws RemoteException {
-		// tempo esgotado = -2
-		// erro -1
-		// ainda nao ha partida = 0;
 		
-		// encontra jogador disponivel
-		// valida quem comeca jogando
-		for (Player player : players) {
-			
-			if (!player.getIsPlaying()) 
-				if (players.get(playerId).getId() < player.getId())
-					return 1;
+		// validar tempo esgotado: -2
+		
+		try {				
+			for (Player player : playersPool) {
+				// econtra jogagor que nao seja eu mesmo.
+				if (!player.getIsPlaying() && player.getId() != playerId) {
+					
+					// saber quem comeca jogando.
+					if (playersPool.get(playerId).getId() < player.getId())
+						return 1;
+					return 2;
+				} 
+			}
+		
+			return 0;
 
-				return 2;
+		} catch (Exception e) {
+			return -1;
 		}
 		
-		// nao ha partida pq todos estao jogando
-		return 0;
-	}
+}
 
 	@Override
 	public String getOpponent(int playerId) throws RemoteException {
 
-		for(Player player: players) {
+		for(Player player: playersPool) {
 			if (!player.getIsPlaying() && player.getId() != playerId)
 				return player.getName();
 		}
@@ -169,8 +188,7 @@ public class Uno extends UnicastRemoteObject implements IUno {
 
 	@Override
 	public String showCards(int playerId) throws RemoteException {
-		// TODO Auto-generated method stub
-		return null;
+		return "SUAS CARTAS";
 	}
 
 	@Override
