@@ -56,7 +56,7 @@ public class Uno extends UnicastRemoteObject implements IUno {
 		return sum;
 	}
 	
-	private void allocatesPlayer(Player newPlayer) {
+	private void allocatesPlayer(Player newPlayer) throws Exception {
 		// aloca jogador em alguma partida ou cria uma so com ele, por enquanto
 		for (Game game : games) {
 			ArrayList<Player> playersOnGame = game.getPlayers();
@@ -85,9 +85,12 @@ public class Uno extends UnicastRemoteObject implements IUno {
 		
 		Player newPlayer =  new Player(playerName, playersPool.size());
 		
-		allocatesPlayer(newPlayer);
-		
-		
+		try {
+			allocatesPlayer(newPlayer);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 		playersPool.add(newPlayer);
 		
@@ -188,7 +191,10 @@ public class Uno extends UnicastRemoteObject implements IUno {
 
 	@Override
 	public String showCards(int playerId) throws RemoteException {
-		return "SUAS CARTAS";
+			Game game = this.getGameByPlayerId(playerId);
+			game.showDeck();
+			
+			return "SUAS CARTAS";
 	}
 
 	@Override
