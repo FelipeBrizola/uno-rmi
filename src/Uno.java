@@ -1,7 +1,6 @@
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Stack;
 
 public class Uno extends UnicastRemoteObject implements IUno {
@@ -90,7 +89,7 @@ public class Uno extends UnicastRemoteObject implements IUno {
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
+		}		
 		
 		playersPool.add(newPlayer);
 		
@@ -149,8 +148,29 @@ public class Uno extends UnicastRemoteObject implements IUno {
 
 	@Override
 	public int isMyTurn(int playerId) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
+		try {
+			
+			// saber de qm é a vez de jogar
+			// guardar status do jogador na partida
+			
+			Game game = getGameByPlayerId(playerId);
+			
+			if (game.getPlayers().size() != 2)
+				return -2;
+			
+			if (this.getNumberOfCards(playerId) == 0)
+				return 2;
+
+			else if (this.getNumberOfCardsFromOpponent(playerId) == 0)
+				return 3;
+					
+			return 0;
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			return -1;
+		}
+		
 	}
 
 	@Override // baralho de compra
