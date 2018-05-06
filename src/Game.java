@@ -23,6 +23,9 @@ public class Game {
 		
 		players.get(0).setDeck(deckPlayerOne);
 		players.get(1).setDeck(deckPlayerTwo);
+
+		// inicializa mesa
+		tableDeck.push(deck.pop());
 	}
 	
 	private Stack<Card> toShuffleCards(Stack<Card> deck) {
@@ -78,6 +81,7 @@ public class Game {
 	}
 	
 	public Game(Player playerOne) {
+		this.status = GameStatus.WAITING;
 		this.players.add(playerOne);
 	}
 	
@@ -86,8 +90,10 @@ public class Game {
 		
 		Stack<Card> deck = createDeck();
 		deck = toShuffleCards(deck);
-		deck = toShuffleCards(deck);
+		
 		toDealTheCards(deck);
+
+		this.status = GameStatus.RUNNING;
 	}
 
 	public Stack<Card> getDeck() {
@@ -118,6 +124,14 @@ public class Game {
 		return null;
 	}
 
+	public Player getOpponentByPlayerId(int playerId) {
+		for(Player player : players)
+			if (player.getId() != playerId)
+				return player;
+		
+		return null;
+	}
+
 	public GameStatus getStatus() {
 		return status;
 	}
@@ -125,11 +139,16 @@ public class Game {
 	public void setStatus(GameStatus status) {
 		this.status = status;
 	}
-	
-	public void showDeck() {
-		for(Card card : deck) {
-			System.out.println(card.getNumber() + " - " + card.getColor() + " - " + card.getType());
+
+	public void setTurnPlayer() {
+
+		for(Player player : this.players) {
+			if (player.getIsMyTurn())
+				player.setIsMyTurn(false);
+			else 
+				player.setIsMyTurn(true);
 		}
+
 	}
 
 }

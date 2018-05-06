@@ -58,6 +58,8 @@ public class main {
 				System.out.println(card.getNumber() + " - " + card.getColor() + " - " + card.getType());
 			}
 			
+			// deck.toString();
+			
 			
 			
 	

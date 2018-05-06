@@ -5,7 +5,7 @@ public class Card {
 	private ColorCard color;
 	private TypeCard type;
 	
-	public Card(ColorCard color, TypeCard type, int number) throws Exception {
+	public Card(ColorCard color, TypeCard type, int number) {
 		this.color = color;
 		this.type = type;
 		this.number = number;

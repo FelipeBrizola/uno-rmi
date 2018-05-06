@@ -5,12 +5,12 @@ public class Player {
 
 	private String name;
 	private int id;
-	private boolean isPlaying;
+	private boolean isMyTurn;
 	private Stack<Card> deck;
 	
 	public Player(String name, int id) {
 		this.name = name;
-		this.isPlaying = false;
+		this.isMyTurn = false;
 		this.id = id;
 		this.setDeck(new Stack<>());
 	}
@@ -27,11 +27,11 @@ public class Player {
 	public void setId(int id) {
 		this.id = id;
 	}
-	public boolean getIsPlaying() {
-		return isPlaying;
+	public boolean getIsMyTurn() {
+		return isMyTurn;
 	}
-	public void setIsPlaying(boolean status) {
-		this.isPlaying = status;
+	public void setIsMyTurn(boolean isMyTurn) {
+		this.isMyTurn = isMyTurn;
 	}
 
 	public Stack<Card> getDeck() {
@@ -40,6 +40,24 @@ public class Player {
 
 	public void setDeck(Stack<Card> deck) {
 		this.deck = deck;
+	}
+
+	public String showDeck() {
+		String deckString = "";
+
+		for(int i =0; i < this.deck.size(); i += 1) {
+			deckString = deckString.concat("Id: " + i + " | " + "Numero: " + this.deck.get(i).getNumber());
+
+			if (this.deck.get(i).getColor() != null)
+				deckString = deckString.concat(" | " + "Cor: " + this.deck.get(i).getColor());
+
+			if (this.deck.get(i).getType() != null)
+				deckString = deckString.concat(" | " + "Tipo: " + this.deck.get(i).getType());
+
+			deckString = deckString.concat("\n");
+			
+		}
+		return deckString;
 	}
 	
 }

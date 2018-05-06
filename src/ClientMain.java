@@ -13,27 +13,26 @@ public class ClientMain {
 			IUno uno = (IUno) Naming.lookup ("//localhost/Uno");
 			
 			Scanner scanner = new Scanner(System.in);
-			
-			System.out.println("Seu nome:");
+			System.out.print("Seu nome: ");
             String playerName = scanner.nextLine();
-            
-			scanner.close();
             
             int playerId = uno.registerPlayer(playerName);
             
             if (playerId == -1) {
 				System.out.println("Usuario ja cadastrado.");
+				scanner.close();
 				return;
 			}
 			
 			if (playerId == -2) {
 				System.out.println("Numero maximo de jogadores atingido.");
+				scanner.close();
 				return;
 			}
 				
 			System.out.println("Seu id: " + playerId);
 			
-			new Client(playerId, uno).runClient();
+			new Client(playerId, uno).runClient(scanner);
 			
 
 		} catch (MalformedURLException e) {

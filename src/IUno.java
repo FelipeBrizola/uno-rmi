@@ -141,5 +141,4 @@ public interface IUno extends Remote {
 	 */
 	public int playCard(int playerId, int index, int cardColor) throws RemoteException;
 	
-	public String hello() throws RemoteException;
 }
