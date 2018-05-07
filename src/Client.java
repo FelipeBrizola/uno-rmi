@@ -2,6 +2,8 @@
 import java.rmi.RemoteException;
 import java.util.Scanner;
 
+import javax.lang.model.util.ElementScanner6;
+
 public class Client {
 
 	private IUno unoGame;
@@ -30,7 +32,7 @@ public class Client {
 				hasGame = unoGame.hasGame(playerId);
 			}
 
-			//System.out.println(hasGame);
+			// System.out.println(hasGame);
 
 			switch (hasGame) {
 			case 1:
@@ -64,8 +66,6 @@ public class Client {
 
 			int isMyTurn = unoGame.isMyTurn(this.playerId);
 
-			System.out.println("IS MY TURN: " + isMyTurn);
-
 			switch (isMyTurn) {
 			case -2:
 				System.out.println("Erro: ainda nao ha 2 jogadores registrados na partida.");
@@ -79,7 +79,7 @@ public class Client {
 			case 1:
 				int status = play();
 
-				if(status == 0) {
+				if (status == 0) {
 					System.out.println("Jogada invalida. Tente novamente");
 					status = play();
 				}
@@ -117,14 +117,54 @@ public class Client {
 	}
 
 	private int play() throws RemoteException {
-		
-		System.out.println("Carta da mesa: " +unoGame.getCardFromTable(playerId));
-		
-		System.out.println("Digite o id da carta que deseja usar: ");
-		String selectedCardIndex = this.scanner.nextLine();
+
+		System.out.println("Carta da mesa: " + unoGame.getCardFromTable(playerId));
+
+		System.out.println("Para jogar uma carta digite o Id");
+		System.out.println("Para comprar uma carta digite c");
+
+		int index = -1;
+		String option = this.scanner.nextLine();
+
+		if (isInt(option))
+			index = Integer.parseInt(option);
 
 		unoGame.showCards(this.playerId);
-		return unoGame.playCard(this.playerId, Integer.parseInt(selectedCardIndex), 0);
+
+		// jogada
+		if (index == -1) {
+
+			// erro ao comprar carta
+			if (unoGame.getCardFromDeck(playerId) != 0)
+				return 0;
+
+			String[] cardsStr = unoGame.showCards(playerId).split("\n");
+			System.out.println("Voce comprou a carta: " + cardsStr[cardsStr.length - 1]);
+			System.out.println("Suas cartas agora sao: " + unoGame.showCards(playerId));
+
+			System.out.println("Voce pode passar a vez ou jogar com a carta que acabou de comprar");
+			System.out.println("Para passar a vez digite p. Para Jogar com a carta comprada digite j");
+			option = this.scanner.nextLine();
+
+			if (option.equals("j"))
+				return unoGame.playCard(this.playerId, cardsStr.length - 1, 0);
+			else if (option.equals("p"))
+				return unoGame.playCard(this.playerId, -1, 0);
+			else
+				return 0;
+
+		}
+
+		else
+			return unoGame.playCard(this.playerId, index, 0);
 	}
 
+	private boolean isInt(String number) {
+		try {
+			Integer.parseInt(number);
+		} catch (Exception e) {
+			return false;
+		}
+		return true;
+	}
 }

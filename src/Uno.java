@@ -312,13 +312,19 @@ public class Uno extends UnicastRemoteObject implements IUno {
 	@Override
 	public int getCardFromDeck(int playerId) throws RemoteException {
 		// comprar carta
-		Game game = this.getGameByPlayerId(playerId);
-		Player player = game.getPlayerByPlayerId(playerId);
-		Card card = game.getDeck().pop();
-		Stack<Card> playerDeck = player.getDeck();
-		playerDeck.push(card);
-		player.setDeck(playerDeck);
-		return 0;
+
+		try {
+			Game game = this.getGameByPlayerId(playerId);
+			Player player = game.getPlayerByPlayerId(playerId);
+			Card card = game.getDeck().pop();
+			Stack<Card> playerDeck = player.getDeck();
+			playerDeck.push(card);
+			player.setDeck(playerDeck);
+			return 0;	
+		} catch (Exception e) {
+			return -1;
+		}
+		
 	}
 
 	@Override
@@ -336,6 +342,13 @@ public class Uno extends UnicastRemoteObject implements IUno {
 	public int playCard(int playerId, int index, int cardColor) throws RemoteException {
 		// cor é quando jogador usou coring  isse a cor a ser usada
 
+		// passa a vez
+		if (index == -1) {
+			this.getGameByPlayerId(playerId).setTurnPlayer();
+			return 1;
+		}
+
+
 		Card tableCard = this.stringToCard(this.getCardFromTable(playerId));
 
 		Card playedCard = this.getGameByPlayerId(playerId).getPlayerByPlayerId(playerId).getDeck().get(index);
@@ -350,9 +363,6 @@ public class Uno extends UnicastRemoteObject implements IUno {
 
 			this.getGameByPlayerId(playerId).setTurnPlayer();
 
-
-			// System.out.println("Status 1: " + this.getGameByPlayerId(0).getPlayerByPlayerId(0).getIsMyTurn() );
-			// System.out.println("Status 1: " + this.getGameByPlayerId(1).getPlayerByPlayerId(1).getIsMyTurn());
 			return 1;
 		}
 
