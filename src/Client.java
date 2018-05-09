@@ -78,29 +78,47 @@ public class Client {
 				break;
 			case 1:
 				int status = play();
-
-				if (status == 0) {
-					System.out.println("Jogada invalida. Tente novamente");
+				switch (status) {
+				case -4:
+					System.out.println("Nao é sua vez");
+					break;
+				case -3:
+					System.out.println("Parametros invalidos");
+					break;
+				case -2:
+					System.out.println("Partida nao iniciada");
+					break;
+				case -1:
+					System.out.println("Jogador nao encontrado");
+					break;
+				case 0:
+					System.out.println("XXX Jogada invalida. Tente novamente XXX");
 					status = play();
+					break;
+				case 1:
+					System.out.println("==> Jogada ok <==");
+					break;
+
+				default:
+					break;
 				}
-				if (status == 1)
-					System.out.println("Jogada ok");
 
-				if (status == 2)
-					System.out.println("Partida encerrada, voce demorou muito para jogar.");
-
-				if (status == -3)
-					System.out.println("Partida encerrada.");
+				System.out.println("Suas cartas: \n " + unoGame.showCards(playerId));
 
 				break;
 			case 2:
 				System.out.println("VOCE VENCEU!!!");
+				System.out.println("Voce fez: " + unoGame.getOpponentScore(playerId));
+				System.out.println("Seu adversario fez: " + unoGame.getScore(playerId));
 				return;
 			case 3:
 				System.out.println("VOCE PERDEU!");
+				System.out.println("Voce fez: " + unoGame.getOpponentScore(playerId) + " pontos");
+				System.out.println("Seu adversario fez: " + unoGame.getScore(playerId) + " pontos");
 				return;
 			case 4:
 				System.out.println("Ocorreu um empate!");
+				System.out.println("Voce e seu adversario fizeram " + unoGame.getScore(playerId) + " pontos");
 				return;
 			case 5:
 				System.out.println("VOCE VENCEU POR WO!!!");
@@ -118,6 +136,8 @@ public class Client {
 
 	private int play() throws RemoteException {
 
+		// int activeColor = unoGame.getActiveColor(playerId);
+
 		System.out.println("Carta da mesa: " + unoGame.getCardFromTable(playerId));
 
 		System.out.println("Para jogar uma carta digite o Id");
@@ -131,32 +151,48 @@ public class Client {
 
 		unoGame.showCards(this.playerId);
 
-		// jogada
+		String[] cardsStr = unoGame.showCards(playerId).split("\n");
+
+		// comprando carta
 		if (index == -1) {
 
 			// erro ao comprar carta
 			if (unoGame.getCardFromDeck(playerId) != 0)
 				return 0;
 
-			String[] cardsStr = unoGame.showCards(playerId).split("\n");
 			System.out.println("Voce comprou a carta: " + cardsStr[cardsStr.length - 1]);
-			System.out.println("Suas cartas agora sao: " + unoGame.showCards(playerId));
-
-			System.out.println("Voce pode passar a vez ou jogar com a carta que acabou de comprar");
 			System.out.println("Para passar a vez digite p. Para Jogar com a carta comprada digite j");
 			option = this.scanner.nextLine();
 
 			if (option.equals("j"))
-				return unoGame.playCard(this.playerId, cardsStr.length - 1, 0);
+				return unoGame.playCard(this.playerId, cardsStr.length - 1, -1);
 			else if (option.equals("p"))
-				return unoGame.playCard(this.playerId, -1, 0);
+				return unoGame.playCard(this.playerId, -1, -1);
 			else
 				return 0;
 
 		}
+		// jogando com joker e joker_+4
+		else if (cardsStr[index].contains("JOKER")) {
+			System.out.println("Selecione o Id da proxima cor ativa: ");
+			System.out.println("Id: 0  | BLUE");
+			System.out.println("Id: 1  | YELLOW");
+			System.out.println("Id: 2  | GREEN");
+			System.out.println("Id: 3  | RED");
+			option = this.scanner.nextLine();
 
+			int colorCard = - 1;
+			if (isInt(option)) {
+				colorCard = Integer.parseInt(option);
+				return unoGame.playCard(this.playerId, index, colorCard);
+			}
+			else
+				return 0;
+		}
 		else
-			return unoGame.playCard(this.playerId, index, 0);
+			return unoGame.playCard(this.playerId, index, -1);
+
+
 	}
 
 	private boolean isInt(String number) {

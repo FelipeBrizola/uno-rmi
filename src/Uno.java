@@ -34,23 +34,6 @@ public class Uno extends UnicastRemoteObject implements IUno {
 		return null;
 	}
 
-	private int colorFactory(ColorCard color) {
-
-		switch (color) {
-		case BLUE:
-			return 0;
-		case GREEN:
-			return 2;
-		case RED:
-			return 3;
-		case YELLOW:
-			return 1;
-
-		default:
-			return -1;
-		}
-	}
-
 	private int sumScore(Stack<Card> deck) {
 		int sum = 0;
 
@@ -86,8 +69,8 @@ public class Uno extends UnicastRemoteObject implements IUno {
 				games.add(new Game(newPlayer));
 
 			}
-		} else 
-			//cria partida com 1 jogador quando ainda nao existem partidas
+		} else
+			// cria partida com 1 jogador quando ainda nao existem partidas
 			games.add(new Game(newPlayer));
 
 	}
@@ -176,13 +159,13 @@ public class Uno extends UnicastRemoteObject implements IUno {
 			Game game = this.getGameByPlayerId(playerId);
 
 			if (game.getPlayers().size() == 2) {
-				
+
 				if (game.getPlayerByPlayerId(playerId).getId() < game.getOpponentByPlayerId(playerId).getId()) {
 					game.getPlayerByPlayerId(playerId).setIsMyTurn(true);
 					return 1;
 				}
 				game.getOpponentByPlayerId(playerId).setIsMyTurn(true);
-				return 2;					
+				return 2;
 			}
 
 			return 0;
@@ -214,11 +197,17 @@ public class Uno extends UnicastRemoteObject implements IUno {
 			if (game.getPlayers().size() != 2)
 				return -2;
 
+			// vencedor
 			if (this.getNumberOfCards(playerId) == 0)
 				return 2;
 
+			// perdedor
 			else if (this.getNumberOfCardsFromOpponent(playerId) == 0)
 				return 3;
+
+			// jogadores ainda tem cartas, mas baralho de compra acabou
+			else if (this.getNumberOfCards(playerId) > 0 && this.getNumberOfCardsFromOpponent(playerId) > 0 && this.getNumberOfCardsFromDeck(playerId) == 0)
+				return 4;
 
 			Player opponent = game.getOpponentByPlayerId(playerId);
 			Player currentPlayer = game.getPlayerByPlayerId(playerId);
@@ -226,7 +215,7 @@ public class Uno extends UnicastRemoteObject implements IUno {
 			// vez do oponente
 			if (opponent.getIsMyTurn() && !currentPlayer.getIsMyTurn())
 				return 0;
-			
+
 			// minha vez
 			if (currentPlayer.getIsMyTurn() && !opponent.getIsMyTurn())
 				return 1;
@@ -286,9 +275,7 @@ public class Uno extends UnicastRemoteObject implements IUno {
 	@Override
 	public int getActiveColor(int playerId) throws RemoteException {
 		Game game = this.getGameByPlayerId(playerId);
-		Stack<Card> tableDeck = game.getTableDeck();
-
-		return this.colorFactory(tableDeck.peek().getColor());
+		return game.getActiveColor();
 
 	}
 
@@ -320,11 +307,11 @@ public class Uno extends UnicastRemoteObject implements IUno {
 			Stack<Card> playerDeck = player.getDeck();
 			playerDeck.push(card);
 			player.setDeck(playerDeck);
-			return 0;	
+			return 0;
 		} catch (Exception e) {
 			return -1;
 		}
-		
+
 	}
 
 	@Override
@@ -340,33 +327,134 @@ public class Uno extends UnicastRemoteObject implements IUno {
 
 	@Override
 	public int playCard(int playerId, int index, int cardColor) throws RemoteException {
-		// cor é quando jogador usou coring  isse a cor a ser usada
+		// cor é quando jogador usou coring  e a cor a ser usada
 
-		// passa a vez
+		Game game = this.getGameByPlayerId(playerId);
+
+		// troca a vez do jogador
 		if (index == -1) {
 			this.getGameByPlayerId(playerId).setTurnPlayer();
 			return 1;
 		}
 
+		// algum jogador nao encontrado
+		if(game.getPlayerByPlayerId(playerId) == null || game.getOpponentByPlayerId(playerId) == null)
+			return -1;
+
+		// parametros invalidos
+		if (index < -1 && index > this.getNumberOfCards(playerId) - 1)
+			return -3;
+
+		// parametros invalidos
+		if (cardColor < -2 && cardColor > 3)
+			return -3;
+
+		// so seta vez do jogador apos partida ter comecado
+		//return -2
+
+		// nao é vez do jogador ainda
+		if (!game.getPlayerByPlayerId(playerId).getIsMyTurn())
+			return -4;
 
 		Card tableCard = this.stringToCard(this.getCardFromTable(playerId));
-
 		Card playedCard = this.getGameByPlayerId(playerId).getPlayerByPlayerId(playerId).getDeck().get(index);
 
-		// valida jogada. remove carta do deck do jogador e a coloca no topo da pilha de
-		// descarte
-		if (tableCard.getColor() == playedCard.getColor() || tableCard.getNumber() == playedCard.getNumber()) {
-			Stack<Card> tableDeck = this.getGameByPlayerId(playerId).getTableDeck();
-			tableDeck.push(playedCard);
-			this.getGameByPlayerId(playerId).setTableDeck(tableDeck);
-			this.getGameByPlayerId(playerId).getPlayerByPlayerId(playerId).getDeck().remove(index);
+		Player player = null;
 
+		switch (this.match(playedCard, tableCard, playerId)) {
+		// erro
+		case -1:
+			game.setActiveColor(-1);
+			return 0;
+		// jogada normal
+		case 0:
+			this.playCardFull(playerId, index, playedCard);
 			this.getGameByPlayerId(playerId).setTurnPlayer();
+			game.setActiveColor(-1);
+			break;
+		// pular e inverter
+		case 1:
+			this.playCardFull(playerId, index, playedCard);
+			game.setActiveColor(-1);
+			break;
+		case 2:
+			// +2
+			// adversario compra 2 cartas e turno nao é trocado.
+			this.playCardFull(playerId, index, playedCard);
 
-			return 1;
+			player = game.getOpponentByPlayerId(playerId);
+			this.getCardFromDeck(player.getId());
+			this.getCardFromDeck(player.getId());
+			game.setActiveColor(-1);
+			break;
+		case 3:
+			// coringa
+			this.playCardFull(playerId, index, playedCard);
+			this.getGameByPlayerId(playerId).setTurnPlayer();
+			game.setActiveColor(cardColor);
+			break;
+		case 4:
+			// coringa +4
+			player = game.getOpponentByPlayerId(playerId);
+			this.getCardFromDeck(player.getId());
+			this.getCardFromDeck(player.getId());
+			this.getCardFromDeck(player.getId());
+			this.getCardFromDeck(player.getId());
+			this.getGameByPlayerId(playerId).setTurnPlayer();
+			game.setActiveColor(cardColor);
+			break;
+
+		default:
+			break;
 		}
 
-		return 0;
+		return 1;
+
+	}
+
+	// remove carta do deck do jogador e a coloca no topo da pilha de descarte
+	private void playCardFull(int playerId, int cardIndex, Card playedCard) {
+		Stack<Card> tableDeck = this.getGameByPlayerId(playerId).getTableDeck();
+		tableDeck.push(playedCard);
+		this.getGameByPlayerId(playerId).setTableDeck(tableDeck);
+		this.getGameByPlayerId(playerId).getPlayerByPlayerId(playerId).getDeck().remove(cardIndex);
+	}
+
+	private int match(Card playedCard, Card tableCard, int playerId) {
+
+		if (this.getGameByPlayerId(playerId).getActiveColor() == playedCard.getColor().getValue())
+			return 0;
+
+		if (playedCard.getType() == TypeCard.JOKER)
+			return 3;
+
+		if (playedCard.getType() == TypeCard.JOKER_4)
+			return 4;
+
+		if (playedCard.getType() != null) {
+
+			if (playedCard.getNumber() == -1 && (tableCard.getColor() == playedCard.getColor() || tableCard.getType() == playedCard.getType())) {
+				switch (playedCard.getType()) {
+				case MORE_2:
+					return 2;
+	
+				case SKIP:
+					return 1;
+				case REVERSE:
+					return 1;
+	
+				default:
+					break;
+				}
+			}
+	
+			return 0;
+		}
+		
+		if ((tableCard.getColor() == playedCard.getColor()) || (tableCard.getNumber() == playedCard.getNumber()))
+			return 0;
+
+		return -1;
 	}
 
 }

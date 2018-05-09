@@ -8,6 +8,7 @@ public class Game {
 	private Stack<Card> deck = new Stack<>();
 	private ArrayList<Player> players = new ArrayList<>();
 	private GameStatus status;
+	private int activeColor;
 	
 	private void toDealTheCards(Stack<Card> deck) {
 		Stack<Card> deckPlayerOne = new Stack<>();
@@ -149,6 +150,14 @@ public class Game {
 				player.setIsMyTurn(true);
 		}
 
+	}
+
+	public int getActiveColor() {
+		return activeColor;
+	}
+
+	public void setActiveColor(int activeColor) {
+		this.activeColor = activeColor;
 	}
 
 }
