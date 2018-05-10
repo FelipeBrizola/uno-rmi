@@ -1,4 +1,6 @@
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import java.util.Stack;
 
@@ -10,7 +12,7 @@ public class Game {
 	private GameStatus status;
 	private int activeColor;
 	private int gameTimer = 0; // 1 timeout game
-	private int woType = 0; // 1 player 1 venceu, 2 player 2 venceu
+	private int[] woPlayers = {-1, -1};
 
 	private void toDealTheCards(Stack<Card> deck) {
 		Stack<Card> deckPlayerOne = new Stack<>();
@@ -166,30 +168,35 @@ public class Game {
 		return gameTimer;
 	}
 
-	public int getWoType() {
-		return woType;
+	public int[] getWoPlayers() {
+		return woPlayers;
+	}
+	
+	public void setWoPlayers(int[] ids) {
+		woPlayers = ids;
 	}
 
 	// wo = playerid de qm deu timeout
-	public Thread watchTurnTimer(int playerId) {
+	public Thread watchTurnTimer() {
 		Thread t = new Thread() {
 			public void run() {
 				try {
 					while (true) {
 
 						// 10 seg teste
-						Thread.sleep(10000);
+						Thread.sleep(5000);
 
+						System.out.println("OI");
+						
 						long now = System.currentTimeMillis();
-
-						if (getPlayerByPlayerId(playerId).getIsMyTurn()) {
-							if ((now - getPlayerByPlayerId(playerId).getTurnTime() > 10000)) {
-								status = GameStatus.TIMEOUT;
-								woType = 1;
+						
+						for(Player p : players) {
+							if ((now - p.getTurnTime()) > 10000) {
+								if (p.getIsMyTurn()) {
+									woPlayers[0] = p.getId(); // perdedor. 
+									woPlayers[1] = getOpponentByPlayerId(p.getId()).getId();//  vencedor
+								}
 							}
-						} else if (getOpponentByPlayerId(playerId).getTurnTime() > 10000) {
-							status = GameStatus.TIMEOUT;
-							woType = 2;
 						}
 
 					}

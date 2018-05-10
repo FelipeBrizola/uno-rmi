@@ -1,6 +1,6 @@
 import java.util.Scanner;
 
-public final class Helper {
+public class Helper {
 
     public static String intColorToStrColor(int color) {
 

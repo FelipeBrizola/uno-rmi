@@ -1,4 +1,3 @@
-
 import java.rmi.RemoteException;
 import java.util.Scanner;
 
@@ -157,7 +156,7 @@ public class Client {
 
 		String[] cardsStr = unoGame.showCards(playerId).split("\n");
 
-		if (index >= 0) {
+		if (index >= 0 && index <= unoGame.getNumberOfCards(playerId)) {
 
 			// jogada com coringa
 			if (cardsStr[index].contains("JOKER")) {

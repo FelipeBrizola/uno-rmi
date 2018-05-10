@@ -22,6 +22,37 @@ public class Uno extends UnicastRemoteObject implements IUno {
 
 		return null;
 	}
+	
+	public synchronized void removeClosedGames() {
+		new Thread() {
+			public void run() {
+				try {
+					while (true) {
+
+						System.out.println("REMOVENDO...");
+						
+						// 30 seg teste
+						Thread.sleep(30000);
+
+						for (int i = 0; i < playersPool.size(); i += 1) {
+							for (Player player : games.get(i).getPlayers())
+								if (player.getId() == playersPool.get(i).getId())
+									playersPool.remove(i);
+						}
+						
+						for (int i = 0; i < games.size(); i += 1) 
+							if (games.get(i).getStatus() == GameStatus.CLOSED) 
+								games.remove(i);
+						
+
+
+					}
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		}.start();
+	}
 
 	private int sumScore(Stack<Card> deck) {
 		int sum = 0;
@@ -60,17 +91,21 @@ public class Uno extends UnicastRemoteObject implements IUno {
 				if (games.get(i).getStatus() == GameStatus.WAITING && playersOnGame.size() == 1) {
 					// todo: remover os 2 jogadores do playersPoll ?
 					games.get(i).addOpponent(newPlayer);
+					
+					// watch turn time
+					games.get(i).watchTurnTimer();
 					break;
 				}
 
 				// cria partida com 1 jogador
-				games.add(new Game(newPlayer));
+				Game newGame = new Game(newPlayer);
+				games.add(newGame);
+				newGame.watchGameTimer();
 
 			}
 		} else {
-
-			Game newGame = new Game(newPlayer);
 			// cria partida com 1 jogador quando ainda nao existem partidas
+			Game newGame = new Game(newPlayer);
 			games.add(newGame);
 
 			// thread para validar tempo de espera
@@ -112,6 +147,7 @@ public class Uno extends UnicastRemoteObject implements IUno {
 
 	protected Uno(String name) throws RemoteException {
 		this.name = name;
+		removeClosedGames();
 	}
 
 	@Override
@@ -203,9 +239,20 @@ public class Uno extends UnicastRemoteObject implements IUno {
 
 			Game game = getGameByPlayerId(playerId);
 
-			// get timer
-			// saber status da partida
-			// qm ganhou, perdeu por timeout
+			System.out.println("Player -> " + game.getWoPlayers()[0]);
+			System.out.println("Tipoe -> " + game.getWoPlayers()[1]);
+			
+			
+			if (playerId == game.getWoPlayers()[0]) {
+				game.setStatus(GameStatus.CLOSED);
+				return 6;
+			}
+			
+			// perdi wo
+			if (playerId == game.getWoPlayers()[1]) {
+				game.setStatus(GameStatus.CLOSED);
+				return 5;
+			}
 
 			if (game.getPlayers().size() != 2)
 				return -2;
@@ -267,7 +314,7 @@ public class Uno extends UnicastRemoteObject implements IUno {
 		if (game != null)
 			for (Player player : game.getPlayers())
 				if (player.getId() == playerId)
-					player.getDeck().size();
+					return player.getDeck().size() - 1;
 
 		return -1;
 
@@ -353,6 +400,14 @@ public class Uno extends UnicastRemoteObject implements IUno {
 
 		Game game = this.getGameByPlayerId(playerId);
 
+		// set do time da jogada
+		game.getPlayerByPlayerId(playerId).setTurnTime(System.currentTimeMillis());
+
+//		if (turnThread != null)
+//			turnThread.interrupt();
+
+		//turnThread = game.watchTurnTimer();
+		
 		// troca a vez do jogador
 		if (index == -1) {
 			this.getGameByPlayerId(playerId).setTurnPlayer();
@@ -364,11 +419,11 @@ public class Uno extends UnicastRemoteObject implements IUno {
 			return -1;
 
 		// parametros invalidos
-		if (index < -1 && index > this.getNumberOfCards(playerId) - 1)
+		if (index < -1 || index > this.getNumberOfCards(playerId))
 			return -3;
 
 		// parametros invalidos
-		if (cardColor < -2 && cardColor > 3)
+		if (cardColor < -2 || cardColor > 3)
 			return -3;
 
 		// so seta vez do jogador apos partida ter comecado
@@ -382,20 +437,6 @@ public class Uno extends UnicastRemoteObject implements IUno {
 		Card playedCard = this.getGameByPlayerId(playerId).getPlayerByPlayerId(playerId).getDeck().get(index);
 
 		Player player = null;
-
-		if (game.getWoType() == 1)
-			return 5;
-
-		if (game.getWoType() == 2)
-			return 6;
-
-		// set do time da jogada
-		game.getPlayerByPlayerId(playerId).setTurnTime(System.currentTimeMillis());
-
-		if (turnThread != null)
-			turnThread.interrupt();
-
-		turnThread = game.watchTurnTimer(playerId);
 
 		// seta cor ativa
 		if (cardColor != -1)
