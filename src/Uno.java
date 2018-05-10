@@ -30,16 +30,16 @@ public class Uno extends UnicastRemoteObject implements IUno {
 
 						// 1 min p destruir partida
 						Thread.sleep(60000);
-
-						for (int i = 0; i < playersPool.size(); i += 1) {
-							for (Player player : games.get(i).getPlayers())
-								if (player.getId() == playersPool.get(i).getId())
-									playersPool.remove(i);
-						}
+						
+						System.out.println("ROTINA PARA REMOVER JOGOS FINALIZADOS");
 
 						for (int i = 0; i < games.size(); i += 1)
-							if (games.get(i).getStatus() == GameStatus.CLOSED)
+							if (games.get(i).getStatus() == GameStatus.CLOSED) {
 								games.remove(i);
+								System.out.println("JOGO REMOVIDO");
+							}
+						
+						removePlayersFromPlayerPool();
 
 					}
 				} catch (InterruptedException e) {
@@ -47,6 +47,14 @@ public class Uno extends UnicastRemoteObject implements IUno {
 				}
 			}
 		}.start();
+	}
+
+	private void removePlayersFromPlayerPool() {
+		for (int i = 0; i < playersPool.size(); i += 1) {
+			for (Player player : games.get(i).getPlayers())
+				if (player.getId() == playersPool.get(i).getId())
+					playersPool.remove(i);
+		}
 	}
 
 	private void removeGameByPlayerId(int playerId) {
@@ -61,7 +69,7 @@ public class Uno extends UnicastRemoteObject implements IUno {
 		// aloca jogador em alguma partida ou cria uma so com ele, por enquanto
 
 		boolean wasAllocated = false;
-		
+
 		if (games.size() > 0) {
 			for (Game game : games) {
 
@@ -74,15 +82,14 @@ public class Uno extends UnicastRemoteObject implements IUno {
 					System.out.println("ADICIONANDO " + newPlayer.getId() + "A PARTIDA");
 					game.addOpponent(newPlayer);
 					wasAllocated = true;
+					game.watchTurnTimer();
 					break;
-
-					// games.get(i).watchTurnTimer();
 				}
 
 			}
-				
-		} 
-		
+
+		}
+
 		if (!wasAllocated) {
 			System.out.println("NOVA PARTIDA: " + newPlayer.getId());
 			return new Game(newPlayer);
@@ -94,7 +101,7 @@ public class Uno extends UnicastRemoteObject implements IUno {
 
 	protected Uno(String name) throws RemoteException {
 		this.name = name;
-		// removeClosedGames();
+		removeClosedGames();
 	}
 
 	@Override
@@ -119,7 +126,7 @@ public class Uno extends UnicastRemoteObject implements IUno {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
+
 		playersPool.add(newPlayer);
 
 		// id do jogador sera o indice da lista
@@ -198,9 +205,6 @@ public class Uno extends UnicastRemoteObject implements IUno {
 		try {
 
 			Game game = getGameByPlayerId(playerId);
-
-			// System.out.println("Player -> " + game.getWoPlayers()[0]);
-			// System.out.println("Tipoe -> " + game.getWoPlayers()[1]);
 
 			// venci wo
 			if (playerId == game.getWoPlayers()[0]) {

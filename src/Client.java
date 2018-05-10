@@ -71,7 +71,7 @@ public class Client {
 				System.out.println("Ocorreu um erro ao consultar partida.");
 				return;
 			case 0:
-				Thread.sleep(2000); // aguarda sua vez
+				Thread.sleep(2000); // aguarda vez
 				break;
 			case 1:
 
