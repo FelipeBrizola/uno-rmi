@@ -12,6 +12,7 @@ public class Game {
 	private GameStatus status;
 	private int activeColor;
 	private int[] woPlayers = {-1, -1};
+	private long closedTimer;
 
 	private void toDealTheCards(Stack<Card> deck) {
 		Stack<Card> deckPlayerOne = new Stack<>();
@@ -170,21 +171,29 @@ public class Game {
 	public void setWoPlayers(int[] ids) {
 		woPlayers = ids;
 	}
+	
+	public long getClosedTimer() {
+		return closedTimer;
+	}
 
-	// wo = playerid de qm deu timeout
+	public void setClosedTimer(long closedTimer) {
+		this.closedTimer = closedTimer;
+	}
+
+
+	// tempo de cada jogada
 	public Thread watchTurnTimer() {
 		Thread t = new Thread() {
 			public void run() {
 				try {
 					while (true) {
 
-						// 1 min para jogar
 						Thread.sleep(60000);
 						
 						long now = System.currentTimeMillis();
 						
 						for(Player p : players) {
-							if ((now - p.getTurnTime()) > 10000) {
+							if ((now - p.getTurnTime()) > 60000) {
 								if (p.getIsMyTurn()) {
 									woPlayers[0] = p.getId(); // perdedor. 
 									woPlayers[1] = getOpponentByPlayerId(p.getId()).getId();//  vencedor
@@ -205,13 +214,13 @@ public class Game {
 
 	}
 
+	// tempo para timeout de partida com um jogador
 	public synchronized void watchGameTimer() {
 		new Thread() {
 			public void run() {
 				try {
 					while (true) {
 
-						// 2 min esperando oponente
 						Thread.sleep(120000);
 
 						if (status == GameStatus.WAITING)

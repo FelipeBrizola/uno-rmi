@@ -29,8 +29,6 @@ public class Client {
 				hasGame = unoGame.hasGame(playerId);
 			}
 
-			// System.out.println(hasGame);
-
 			switch (hasGame) {
 			case 1:
 				System.out.println("Voce jogara contra: " + unoGame.getOpponent(playerId));
@@ -75,7 +73,7 @@ public class Client {
 				break;
 			case 1:
 
-				System.out.println("Suas cartas sao: \n" + unoGame.showCards(playerId));
+				//System.out.println("Suas cartas sao: \n" + unoGame.showCards(playerId));
 
 				int status = play();
 				switch (status) {
@@ -117,7 +115,7 @@ public class Client {
 				System.out.println("Seu adversario fez: " + unoGame.getScore(playerId) + " pontos");
 				return;
 			case 4:
-				System.out.println("Ocorreu um empate!");
+				System.out.println("EMPATE!");
 				System.out.println("Voce e seu adversario fizeram " + unoGame.getScore(playerId) + " pontos");
 				return;
 			case 5:
@@ -181,12 +179,16 @@ public class Client {
 				return 0;
 
 			System.out.println("Voce comprou a carta: " + cardsStr[cardsStr.length - 1]);
-			System.out.println("Para passar a vez digite p. Para Jogar com a carta comprada digite j");
+			System.out.println("Para passar a vez digite p");
+			System.out.println("Para Jogar com a carta comprada digite j");
+			
 			option = this.scanner.nextLine();
 
 			// quando comprar e jogar. pode ter comprado coringa. entao selecionar cor ativa
 			if (option.equals("j")) {
-				if (cardsStr[index].contains("JOKER")) {
+
+				// carta comprada é sempre a ultima do baralho
+				if (cardsStr[cardsStr.length - 1].contains("JOKER")) {
 					option = Helper.playWithJoker(scanner);
 					int colorCard = -1;
 					if (Helper.isInt(option)) {
