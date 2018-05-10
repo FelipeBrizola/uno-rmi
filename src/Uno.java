@@ -11,7 +11,6 @@ public class Uno extends UnicastRemoteObject implements IUno {
 	private String name;
 	private ArrayList<Player> playersPool = new ArrayList<>();
 	private ArrayList<Game> games = new ArrayList<>();
-	private Thread turnThread = null;
 
 	private synchronized Game getGameByPlayerId(int playerId) {
 
@@ -22,29 +21,25 @@ public class Uno extends UnicastRemoteObject implements IUno {
 
 		return null;
 	}
-	
+
 	public synchronized void removeClosedGames() {
 		new Thread() {
 			public void run() {
 				try {
 					while (true) {
 
-						System.out.println("REMOVENDO...");
-						
-						// 30 seg teste
-						Thread.sleep(30000);
+						// 1 min p destruir partida
+						Thread.sleep(60000);
 
 						for (int i = 0; i < playersPool.size(); i += 1) {
 							for (Player player : games.get(i).getPlayers())
 								if (player.getId() == playersPool.get(i).getId())
 									playersPool.remove(i);
 						}
-						
-						for (int i = 0; i < games.size(); i += 1) 
-							if (games.get(i).getStatus() == GameStatus.CLOSED) 
-								games.remove(i);
-						
 
+						for (int i = 0; i < games.size(); i += 1)
+							if (games.get(i).getStatus() == GameStatus.CLOSED)
+								games.remove(i);
 
 					}
 				} catch (InterruptedException e) {
@@ -52,23 +47,6 @@ public class Uno extends UnicastRemoteObject implements IUno {
 				}
 			}
 		}.start();
-	}
-
-	private int sumScore(Stack<Card> deck) {
-		int sum = 0;
-
-		for (Card card : deck) {
-
-			if (card.getType() == TypeCard.JOKER || card.getType() == TypeCard.JOKER_4)
-				sum += 50;
-			else if (card.getType() == TypeCard.MORE_2 || card.getType() == TypeCard.SKIP
-					|| card.getType() == TypeCard.REVERSE)
-				sum += 20;
-			else
-				sum += card.getNumber();
-		}
-
-		return sum;
 	}
 
 	private void removeGameByPlayerId(int playerId) {
@@ -79,79 +57,48 @@ public class Uno extends UnicastRemoteObject implements IUno {
 
 	}
 
-	private synchronized void allocatesPlayer(Player newPlayer) throws Exception {
+	private synchronized Game allocatesPlayer(Player newPlayer) throws Exception {
 		// aloca jogador em alguma partida ou cria uma so com ele, por enquanto
 
+		boolean wasAllocated = false;
+		
 		if (games.size() > 0) {
-			for (int i = 0; i < games.size(); i += 1) {
-			//for (Game game : games) {
-				ArrayList<Player> playersOnGame = games.get(i).getPlayers();
+			for (Game game : games) {
+
+				System.out.println("ROTINA DE ALOCACAO");
+				System.out.println("PARAMETRO ENVIADO" + newPlayer.getId());
 
 				// entra segundo jogador
-				if (games.get(i).getStatus() == GameStatus.WAITING && playersOnGame.size() == 1) {
-					// todo: remover os 2 jogadores do playersPoll ?
-					games.get(i).addOpponent(newPlayer);
-					
-					// watch turn time
-					games.get(i).watchTurnTimer();
+				if (game.getStatus() == GameStatus.WAITING && game.getPlayers().size() == 1) {
+
+					System.out.println("ADICIONANDO " + newPlayer.getId() + "A PARTIDA");
+					game.addOpponent(newPlayer);
+					wasAllocated = true;
 					break;
+
+					// games.get(i).watchTurnTimer();
 				}
 
-				// cria partida com 1 jogador
-				Game newGame = new Game(newPlayer);
-				games.add(newGame);
-				newGame.watchGameTimer();
-
 			}
-		} else {
-			// cria partida com 1 jogador quando ainda nao existem partidas
-			Game newGame = new Game(newPlayer);
-			games.add(newGame);
-
-			// thread para validar tempo de espera
-			 newGame.watchGameTimer();
+				
+		} 
+		
+		if (!wasAllocated) {
+			System.out.println("NOVA PARTIDA: " + newPlayer.getId());
+			return new Game(newPlayer);
 		}
 
-	}
-
-	private String cardToString(Card card) {
-
-		if (card.getColor() != null && card.getNumber() != -1 && card.getType() == null)
-			return card.getNumber() + "/" + card.getColor();
-
-		if (card.getColor() != null && card.getNumber() == -1 && card.getType() != null)
-			return card.getType() + "/" + card.getColor();
-
-		if (card.getColor() == null && card.getNumber() == -1 && card.getType() != null)
-			return card.getType() + "/*";
-
-		return "";
-	}
-
-	private Card stringToCard(String cardStr) {
-
-		String[] values = cardStr.split("/");
-
-		// coringa
-		if (cardStr.contains("*"))
-			return new Card(null, TypeCard.valueOf(values[0]), -1);
-
-		try {
-			int number = Integer.parseInt(values[0]);
-			return new Card(ColorCard.valueOf(values[1]), null, number);
-		} catch (Exception e) {
-			return new Card(ColorCard.valueOf(values[1]), TypeCard.valueOf(values[0]), -1);
-		}
+		return null;
 
 	}
 
 	protected Uno(String name) throws RemoteException {
 		this.name = name;
-		removeClosedGames();
+		// removeClosedGames();
 	}
 
 	@Override
-	public  synchronized int registerPlayer(String playerName) throws RemoteException {
+	public synchronized int registerPlayer(String playerName) throws RemoteException {
 
 		if (playersPool.size() > MAX_PLAYERS)
 			return -2;
@@ -163,11 +110,16 @@ public class Uno extends UnicastRemoteObject implements IUno {
 		Player newPlayer = new Player(playerName, playersPool.size());
 
 		try {
-			allocatesPlayer(newPlayer);
+			Game game = allocatesPlayer(newPlayer);
+			if (game != null)
+				games.add(game);
+
+			System.out.println("QUANTIDADE DE JOGOS " + games.size());
+
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-
+		
 		playersPool.add(newPlayer);
 
 		// id do jogador sera o indice da lista
@@ -187,13 +139,14 @@ public class Uno extends UnicastRemoteObject implements IUno {
 	}
 
 	@Override
-	public int hasGame(int playerId) throws RemoteException {
+	public synchronized int hasGame(int playerId) throws RemoteException {
 
 		try {
 
 			Game game = this.getGameByPlayerId(playerId);
 
-			if (game.getGameTimer() == 1) {
+			// acabou de tempo de espera para partida
+			if (game != null && game.getStatus() == GameStatus.TIMEOUT) {
 				removeGameByPlayerId(playerId);
 				for (int i = 0; i < playersPool.size(); i += 1) {
 					if (playersPool.get(i).getId() == playerId)
@@ -202,7 +155,14 @@ public class Uno extends UnicastRemoteObject implements IUno {
 				return -2;
 			}
 
-			if (game.getPlayers().size() == 2) {
+			if (game != null && game.getPlayers().size() == 1)
+				return 0;
+
+			if (game != null && game.getPlayers().size() == 2) {
+
+				System.out.println("MEMBROS DA PARTIDA " + game.getPlayers().size());
+				System.out.println("EU " + game.getPlayerByPlayerId(playerId).getId());
+				System.out.println("ADVERSARIO " + game.getOpponentByPlayerId(playerId).getId());
 
 				if (game.getPlayerByPlayerId(playerId).getId() < game.getOpponentByPlayerId(playerId).getId()) {
 					game.getPlayerByPlayerId(playerId).setIsMyTurn(true);
@@ -239,15 +199,15 @@ public class Uno extends UnicastRemoteObject implements IUno {
 
 			Game game = getGameByPlayerId(playerId);
 
-			System.out.println("Player -> " + game.getWoPlayers()[0]);
-			System.out.println("Tipoe -> " + game.getWoPlayers()[1]);
-			
-			
+			// System.out.println("Player -> " + game.getWoPlayers()[0]);
+			// System.out.println("Tipoe -> " + game.getWoPlayers()[1]);
+
+			// venci wo
 			if (playerId == game.getWoPlayers()[0]) {
 				game.setStatus(GameStatus.CLOSED);
 				return 6;
 			}
-			
+
 			// perdi wo
 			if (playerId == game.getWoPlayers()[1]) {
 				game.setStatus(GameStatus.CLOSED);
@@ -268,15 +228,13 @@ public class Uno extends UnicastRemoteObject implements IUno {
 				game.setStatus(GameStatus.CLOSED);
 				return 3;
 			}
-				
 
 			// jogadores ainda tem cartas, mas baralho de compra acabou
 			else if (this.getNumberOfCards(playerId) > 0 && this.getNumberOfCardsFromOpponent(playerId) > 0
 					&& this.getNumberOfCardsFromDeck(playerId) == 0) {
-						game.setStatus(GameStatus.CLOSED);
-						return 4;		
-					}
-				
+				game.setStatus(GameStatus.CLOSED);
+				return 4;
+			}
 
 			Player opponent = game.getOpponentByPlayerId(playerId);
 			Player currentPlayer = game.getPlayerByPlayerId(playerId);
@@ -353,7 +311,7 @@ public class Uno extends UnicastRemoteObject implements IUno {
 		Game game = this.getGameByPlayerId(playerId);
 		Player player = game.getPlayerByPlayerId(playerId);
 
-		return this.sumScore(player.getDeck());
+		return Helper.sumScore(player.getDeck());
 	}
 
 	@Override
@@ -361,7 +319,7 @@ public class Uno extends UnicastRemoteObject implements IUno {
 		Game game = this.getGameByPlayerId(playerId);
 		Card card = game.getTableDeck().peek();
 
-		return this.cardToString(card);
+		return Helper.cardToString(card);
 
 	}
 
@@ -389,25 +347,20 @@ public class Uno extends UnicastRemoteObject implements IUno {
 
 		for (Player player : game.getPlayers())
 			if (player.getId() != playerId)
-				return this.sumScore(player.getDeck());
+				return Helper.sumScore(player.getDeck());
 
 		return 0;
 	}
 
 	@Override
 	public int playCard(int playerId, int index, int cardColor) throws RemoteException {
-		// cor é quando jogador usou coring   cor a ser usada
+		// cor é quando jogador usou coring cor a ser usada
 
 		Game game = this.getGameByPlayerId(playerId);
 
 		// set do time da jogada
 		game.getPlayerByPlayerId(playerId).setTurnTime(System.currentTimeMillis());
 
-//		if (turnThread != null)
-//			turnThread.interrupt();
-
-		//turnThread = game.watchTurnTimer();
-		
 		// troca a vez do jogador
 		if (index == -1) {
 			this.getGameByPlayerId(playerId).setTurnPlayer();
@@ -433,7 +386,7 @@ public class Uno extends UnicastRemoteObject implements IUno {
 		if (!game.getPlayerByPlayerId(playerId).getIsMyTurn())
 			return -4;
 
-		Card tableCard = this.stringToCard(this.getCardFromTable(playerId));
+		Card tableCard = Helper.stringToCard(this.getCardFromTable(playerId));
 		Card playedCard = this.getGameByPlayerId(playerId).getPlayerByPlayerId(playerId).getDeck().get(index);
 
 		Player player = null;

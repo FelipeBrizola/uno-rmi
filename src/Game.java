@@ -11,7 +11,6 @@ public class Game {
 	private ArrayList<Player> players = new ArrayList<>();
 	private GameStatus status;
 	private int activeColor;
-	private int gameTimer = 0; // 1 timeout game
 	private int[] woPlayers = {-1, -1};
 
 	private void toDealTheCards(Stack<Card> deck) {
@@ -164,10 +163,6 @@ public class Game {
 		this.activeColor = activeColor;
 	}
 
-	public int getGameTimer() {
-		return gameTimer;
-	}
-
 	public int[] getWoPlayers() {
 		return woPlayers;
 	}
@@ -183,10 +178,8 @@ public class Game {
 				try {
 					while (true) {
 
-						// 10 seg teste
-						Thread.sleep(5000);
-
-						System.out.println("OI");
+						// 1 min para jogar
+						Thread.sleep(60000);
 						
 						long now = System.currentTimeMillis();
 						
@@ -218,13 +211,11 @@ public class Game {
 				try {
 					while (true) {
 
-						// 10 seg teste
-						Thread.sleep(10000);
+						// 2 min esperando oponente
+						Thread.sleep(120000);
 
-						if (status == GameStatus.WAITING) {
+						if (status == GameStatus.WAITING)
 							status = GameStatus.TIMEOUT;
-							gameTimer = 1;
-						}
 
 					}
 				} catch (InterruptedException e) {
