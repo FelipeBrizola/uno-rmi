@@ -1,4 +1,3 @@
-import java.util.ArrayList;
 import java.util.Stack;
 
 public class Player {
@@ -7,6 +6,7 @@ public class Player {
 	private int id;
 	private boolean isMyTurn;
 	private Stack<Card> deck;
+	private long turnTime;
 	
 	public Player(String name, int id) {
 		this.name = name;
@@ -42,6 +42,8 @@ public class Player {
 		this.deck = deck;
 	}
 
+
+
 	public String showDeck() {
 		String deckString = "";
 
@@ -58,6 +60,14 @@ public class Player {
 			
 		}
 		return deckString;
+	}
+
+	public long getTurnTime() {
+		return turnTime;
+	}
+
+	public void setTurnTime(long turnTime) {
+		this.turnTime = turnTime;
 	}
 	
 }

@@ -1,35 +1,24 @@
-import java.awt.Window.Type;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Stack;
 
-import javax.management.ValueExp;
-
 public class Uno extends UnicastRemoteObject implements IUno {
 
-	private static int MAX_PLAYERS = 2;
+	private static int MAX_PLAYERS = 4;
 
 	private static final long serialVersionUID = 1L;
 	private String name;
 	private ArrayList<Player> playersPool = new ArrayList<>();
 	private ArrayList<Game> games = new ArrayList<>();
+	private Thread turnThread = null;
 
-	private Game getGameByPlayerId(int playerId) {
+	private synchronized Game getGameByPlayerId(int playerId) {
 
 		for (Game game : games)
 			for (Player player : game.getPlayers())
 				if (player.getId() == playerId)
 					return game;
-
-		return null;
-	}
-
-	private Player getPlayerById(int playerId) {
-
-		for (Player player : playersPool)
-			if (player.getId() == playerId)
-				return player;
 
 		return null;
 	}
@@ -51,17 +40,26 @@ public class Uno extends UnicastRemoteObject implements IUno {
 		return sum;
 	}
 
-	private void allocatesPlayer(Player newPlayer) throws Exception {
+	private void removeGameByPlayerId(int playerId) {
+		for (int i = 0; i < games.size(); i += 1) {
+			if (games.get(i).getPlayerByPlayerId(playerId).getId() == playerId)
+				games.remove(i);
+		}
+
+	}
+
+	private synchronized void allocatesPlayer(Player newPlayer) throws Exception {
 		// aloca jogador em alguma partida ou cria uma so com ele, por enquanto
 
 		if (games.size() > 0) {
-			for (Game game : games) {
-				ArrayList<Player> playersOnGame = game.getPlayers();
+			for (int i = 0; i < games.size(); i += 1) {
+			//for (Game game : games) {
+				ArrayList<Player> playersOnGame = games.get(i).getPlayers();
 
 				// entra segundo jogador
-				if (game.getStatus() == GameStatus.WAITING && playersOnGame.size() == 1) {
+				if (games.get(i).getStatus() == GameStatus.WAITING && playersOnGame.size() == 1) {
 					// todo: remover os 2 jogadores do playersPoll ?
-					game.addOpponent(newPlayer);
+					games.get(i).addOpponent(newPlayer);
 					break;
 				}
 
@@ -69,9 +67,15 @@ public class Uno extends UnicastRemoteObject implements IUno {
 				games.add(new Game(newPlayer));
 
 			}
-		} else
+		} else {
+
+			Game newGame = new Game(newPlayer);
 			// cria partida com 1 jogador quando ainda nao existem partidas
-			games.add(new Game(newPlayer));
+			games.add(newGame);
+
+			// thread para validar tempo de espera
+			 newGame.watchGameTimer();
+		}
 
 	}
 
@@ -111,7 +115,7 @@ public class Uno extends UnicastRemoteObject implements IUno {
 	}
 
 	@Override
-	public int registerPlayer(String playerName) throws RemoteException {
+	public  synchronized int registerPlayer(String playerName) throws RemoteException {
 
 		if (playersPool.size() > MAX_PLAYERS)
 			return -2;
@@ -125,7 +129,6 @@ public class Uno extends UnicastRemoteObject implements IUno {
 		try {
 			allocatesPlayer(newPlayer);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
@@ -150,13 +153,18 @@ public class Uno extends UnicastRemoteObject implements IUno {
 	@Override
 	public int hasGame(int playerId) throws RemoteException {
 
-		// validar tempo esgotado: -2
-		// 1 playerId comeca jogando
-		// id menor comeca
-
 		try {
 
 			Game game = this.getGameByPlayerId(playerId);
+
+			if (game.getGameTimer() == 1) {
+				removeGameByPlayerId(playerId);
+				for (int i = 0; i < playersPool.size(); i += 1) {
+					if (playersPool.get(i).getId() == playerId)
+						playersPool.remove(i);
+				}
+				return -2;
+			}
 
 			if (game.getPlayers().size() == 2) {
 
@@ -171,6 +179,7 @@ public class Uno extends UnicastRemoteObject implements IUno {
 			return 0;
 
 		} catch (Exception e) {
+			e.printStackTrace();
 			return -1;
 		}
 
@@ -194,20 +203,33 @@ public class Uno extends UnicastRemoteObject implements IUno {
 
 			Game game = getGameByPlayerId(playerId);
 
+			// get timer
+			// saber status da partida
+			// qm ganhou, perdeu por timeout
+
 			if (game.getPlayers().size() != 2)
 				return -2;
 
 			// vencedor
-			if (this.getNumberOfCards(playerId) == 0)
+			if (this.getNumberOfCards(playerId) == 0) {
+				game.setStatus(GameStatus.CLOSED);
 				return 2;
+			}
 
 			// perdedor
-			else if (this.getNumberOfCardsFromOpponent(playerId) == 0)
+			else if (this.getNumberOfCardsFromOpponent(playerId) == 0) {
+				game.setStatus(GameStatus.CLOSED);
 				return 3;
+			}
+				
 
 			// jogadores ainda tem cartas, mas baralho de compra acabou
-			else if (this.getNumberOfCards(playerId) > 0 && this.getNumberOfCardsFromOpponent(playerId) > 0 && this.getNumberOfCardsFromDeck(playerId) == 0)
-				return 4;
+			else if (this.getNumberOfCards(playerId) > 0 && this.getNumberOfCardsFromOpponent(playerId) > 0
+					&& this.getNumberOfCardsFromDeck(playerId) == 0) {
+						game.setStatus(GameStatus.CLOSED);
+						return 4;		
+					}
+				
 
 			Player opponent = game.getOpponentByPlayerId(playerId);
 			Player currentPlayer = game.getPlayerByPlayerId(playerId);
@@ -327,7 +349,7 @@ public class Uno extends UnicastRemoteObject implements IUno {
 
 	@Override
 	public int playCard(int playerId, int index, int cardColor) throws RemoteException {
-		// cor é quando jogador usou coring  e a cor a ser usada
+		// cor é quando jogador usou coring   cor a ser usada
 
 		Game game = this.getGameByPlayerId(playerId);
 
@@ -338,7 +360,7 @@ public class Uno extends UnicastRemoteObject implements IUno {
 		}
 
 		// algum jogador nao encontrado
-		if(game.getPlayerByPlayerId(playerId) == null || game.getOpponentByPlayerId(playerId) == null)
+		if (game.getPlayerByPlayerId(playerId) == null || game.getOpponentByPlayerId(playerId) == null)
 			return -1;
 
 		// parametros invalidos
@@ -350,7 +372,7 @@ public class Uno extends UnicastRemoteObject implements IUno {
 			return -3;
 
 		// so seta vez do jogador apos partida ter comecado
-		//return -2
+		// return -2
 
 		// nao é vez do jogador ainda
 		if (!game.getPlayerByPlayerId(playerId).getIsMyTurn())
@@ -361,10 +383,27 @@ public class Uno extends UnicastRemoteObject implements IUno {
 
 		Player player = null;
 
+		if (game.getWoType() == 1)
+			return 5;
+
+		if (game.getWoType() == 2)
+			return 6;
+
+		// set do time da jogada
+		game.getPlayerByPlayerId(playerId).setTurnTime(System.currentTimeMillis());
+
+		if (turnThread != null)
+			turnThread.interrupt();
+
+		turnThread = game.watchTurnTimer(playerId);
+
+		// seta cor ativa
+		if (cardColor != -1)
+			game.setActiveColor(cardColor);
+
 		switch (this.match(playedCard, tableCard, playerId)) {
 		// erro
 		case -1:
-			game.setActiveColor(-1);
 			return 0;
 		// jogada normal
 		case 0:
@@ -391,7 +430,6 @@ public class Uno extends UnicastRemoteObject implements IUno {
 			// coringa
 			this.playCardFull(playerId, index, playedCard);
 			this.getGameByPlayerId(playerId).setTurnPlayer();
-			game.setActiveColor(cardColor);
 			break;
 		case 4:
 			// coringa +4
@@ -401,7 +439,6 @@ public class Uno extends UnicastRemoteObject implements IUno {
 			this.getCardFromDeck(player.getId());
 			this.getCardFromDeck(player.getId());
 			this.getGameByPlayerId(playerId).setTurnPlayer();
-			game.setActiveColor(cardColor);
 			break;
 
 		default:
@@ -422,7 +459,8 @@ public class Uno extends UnicastRemoteObject implements IUno {
 
 	private int match(Card playedCard, Card tableCard, int playerId) {
 
-		if (this.getGameByPlayerId(playerId).getActiveColor() == playedCard.getColor().getValue())
+		if ((playedCard.getColor() != null)
+				&& this.getGameByPlayerId(playerId).getActiveColor() == playedCard.getColor().getValue())
 			return 0;
 
 		if (playedCard.getType() == TypeCard.JOKER)
@@ -433,24 +471,25 @@ public class Uno extends UnicastRemoteObject implements IUno {
 
 		if (playedCard.getType() != null) {
 
-			if (playedCard.getNumber() == -1 && (tableCard.getColor() == playedCard.getColor() || tableCard.getType() == playedCard.getType())) {
+			if (playedCard.getNumber() == -1 && ((tableCard.getColor() == playedCard.getColor())
+					|| (tableCard.getType() == playedCard.getType()))) {
 				switch (playedCard.getType()) {
 				case MORE_2:
 					return 2;
-	
+
 				case SKIP:
 					return 1;
 				case REVERSE:
 					return 1;
-	
+
 				default:
 					break;
 				}
 			}
-	
-			return 0;
+
+			return -1;
 		}
-		
+
 		if ((tableCard.getColor() == playedCard.getColor()) || (tableCard.getNumber() == playedCard.getNumber()))
 			return 0;
 

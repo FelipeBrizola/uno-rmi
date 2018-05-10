@@ -2,8 +2,6 @@
 import java.rmi.RemoteException;
 import java.util.Scanner;
 
-import javax.lang.model.util.ElementScanner6;
-
 public class Client {
 
 	private IUno unoGame;
@@ -77,6 +75,9 @@ public class Client {
 				Thread.sleep(2000); // aguarda sua vez
 				break;
 			case 1:
+
+				System.out.println("Suas cartas sao: \n" + unoGame.showCards(playerId));
+
 				int status = play();
 				switch (status) {
 				case -4:
@@ -136,9 +137,12 @@ public class Client {
 
 	private int play() throws RemoteException {
 
-		// int activeColor = unoGame.getActiveColor(playerId);
+		int activeColor = unoGame.getActiveColor(playerId);
 
-		System.out.println("Carta da mesa: " + unoGame.getCardFromTable(playerId));
+		if (activeColor == -1)
+			System.out.println("Carta da mesa: " + unoGame.getCardFromTable(playerId));
+		else
+			System.out.println("Cor ativa na mesa: " + Helper.intColorToStrColor(activeColor));
 
 		System.out.println("Para jogar uma carta digite o Id");
 		System.out.println("Para comprar uma carta digite c");
@@ -146,15 +150,32 @@ public class Client {
 		int index = -1;
 		String option = this.scanner.nextLine();
 
-		if (isInt(option))
+		if (Helper.isInt(option))
 			index = Integer.parseInt(option);
 
 		unoGame.showCards(this.playerId);
 
 		String[] cardsStr = unoGame.showCards(playerId).split("\n");
 
+		if (index >= 0) {
+
+			// jogada com coringa
+			if (cardsStr[index].contains("JOKER")) {
+				option = Helper.playWithJoker(scanner);
+				int colorCard = -1;
+				if (Helper.isInt(option)) {
+					colorCard = Integer.parseInt(option);
+					return unoGame.playCard(this.playerId, index, colorCard);
+				} else
+					return 0;
+				
+			}
+			// jogada normal
+			return unoGame.playCard(this.playerId, index, -1);
+		}
+
 		// comprando carta
-		if (index == -1) {
+		else if (index == -1) {
 
 			// erro ao comprar carta
 			if (unoGame.getCardFromDeck(playerId) != 0)
@@ -164,43 +185,25 @@ public class Client {
 			System.out.println("Para passar a vez digite p. Para Jogar com a carta comprada digite j");
 			option = this.scanner.nextLine();
 
-			if (option.equals("j"))
+			// quando comprar e jogar. pode ter comprado coringa. entao selecionar cor ativa
+			if (option.equals("j")) {
+				if (cardsStr[index].contains("JOKER")) {
+					option = Helper.playWithJoker(scanner);
+					int colorCard = -1;
+					if (Helper.isInt(option)) {
+						colorCard = Integer.parseInt(option);
+						return unoGame.playCard(this.playerId, index, colorCard);
+					} else
+						return 0;
+				}
 				return unoGame.playCard(this.playerId, cardsStr.length - 1, -1);
-			else if (option.equals("p"))
+			} else if (option.equals("p"))
 				return unoGame.playCard(this.playerId, -1, -1);
 			else
 				return 0;
 
 		}
-		// jogando com joker e joker_+4
-		else if (cardsStr[index].contains("JOKER")) {
-			System.out.println("Selecione o Id da proxima cor ativa: ");
-			System.out.println("Id: 0  | BLUE");
-			System.out.println("Id: 1  | YELLOW");
-			System.out.println("Id: 2  | GREEN");
-			System.out.println("Id: 3  | RED");
-			option = this.scanner.nextLine();
 
-			int colorCard = - 1;
-			if (isInt(option)) {
-				colorCard = Integer.parseInt(option);
-				return unoGame.playCard(this.playerId, index, colorCard);
-			}
-			else
-				return 0;
-		}
-		else
-			return unoGame.playCard(this.playerId, index, -1);
-
-
-	}
-
-	private boolean isInt(String number) {
-		try {
-			Integer.parseInt(number);
-		} catch (Exception e) {
-			return false;
-		}
-		return true;
+		return 0;
 	}
 }
